@@ -21,8 +21,21 @@ function xml_form_builder_uninstall() {
 }
 
 /**
+ * Implements hook_requirements().
+ */
+function xml_form_builder_requirements($phase) {
+  module_load_include('inc', 'extjs', 'extjs.utils');
+  if($phase != 'install') {
+    return;
+  }
+  return array(
+    'xml_form_builder' => extjs_get_version_requirement('Islandora XML Form Builder', '4.1.0')
+  );
+}
+
+/**
  * Implementation of hook_schema.
- * 
+ *
  * @return array
  *   The Schema definition
  */

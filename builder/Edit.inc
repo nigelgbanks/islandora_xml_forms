@@ -2,16 +2,16 @@
 
 /**
  * @file
- * 
+ *
  * Callbacks and functions used in the Edit Form Page, for rendering the Form Builder GUI.
  */
 
 /**
  * Includes all the required CSS/JS files needed to render the Form Builder GUI.
- *  
- * @param string $form_name 
+ *
+ * @param string $form_name
  *   The name of the form to edit.
- * 
+ *
  * @return string
  *   The html where the Form Builder GUI will be rendered.
  */
@@ -28,50 +28,41 @@ function xml_form_builder_edit($form_name) {
  * Includes all the required CSS files needed to render the Form Builder GUI.
  */
 function xml_form_builder_edit_include_css() {
-  $path = drupal_get_path('module', 'xml_form_builder');
-  $ext_path = $path . '/lib/ext/';
-  $css_path = $path . '/css/';
-  $css_files = array(
-    $css_path . 'Clear.css',
-    $css_path . 'EditForm.css',
-    $ext_path . 'resources/css/ext-all.css'
-  );
-  foreach ($css_files as $file) {
-    drupal_add_css($file);
-  }
+  $css_path = drupal_get_path('module', 'xml_form_builder') . '/css';
+  drupal_add_css("$css_path/Clear.css");
+  drupal_add_css("$css_path/EditForm.css");
+  extjs_add_css_file('ext-all');
 }
 
 /**
  * Includes all the required JS files needed to render the Form Builder GUI.
  */
 function xml_form_builder_edit_include_js() {
-  $path = drupal_get_path('module', 'xml_form_builder');
-  $ext_path = $path . '/lib/ext/';
-  $js_path = $path . '/js/';
-  $js_files = array(
-    $ext_path . 'ext-all.js',
-    $js_path . 'Formbuilder.js',
-    $js_path . 'FormGrid.js',
-    $js_path . 'Tooltips.js',
-    $js_path . 'ElementModel.js',
-    $js_path . 'PropertiesModel.js',
-    $js_path . 'MainPanel.js',
-    $js_path . 'DisplayPanel.js',
-    $js_path . 'TreePanel.js',
-    $js_path . 'ElementForm.js',
-    $js_path . 'PropertiesForm.js',
-    $js_path . 'PreviewPanel.js',
+  extjs_add_all();
+  $js_path = drupal_get_path('module', 'xml_form_builder') . '/js';
+  $files = array(
+    'Formbuilder.js',
+    'FormGrid.js',
+    'Tooltips.js',
+    'ElementModel.js',
+    'PropertiesModel.js',
+    'MainPanel.js',
+    'DisplayPanel.js',
+    'TreePanel.js',
+    'ElementForm.js',
+    'PropertiesForm.js',
+    'PreviewPanel.js',
   );
-  foreach ($js_files as $file) {
-    drupal_add_js($file);
+  foreach ($files as $file) {
+    drupal_add_js("$js_path/$file");
   }
 }
 
 /**
  * Save changes made to the form definition client side.
- * 
+ *
  * Transforms the submited JSON into a Form Definition which is then stored in the database as an XML Form Definition.
- * 
+ *
  * @param string $form_name
  *   The name of the form to update.
  */
@@ -92,7 +83,7 @@ function xml_form_builder_edit_save($form_name) {
 
 /**
  * Creates an inline javascript file that creates an ExtJS store containing all the possible form field types.
- * 
+ *
  * Used in the Element Type Combo Box, in the Element form of the Form Builder GUI.
  */
 function xml_form_builder_create_element_type_store() {
@@ -123,10 +114,10 @@ EOT;
 
 /**
  * Creates an inline javascript file that creates an ExtJS store containing the form properties.
- * 
+ *
  * Used to populate the 'Form Properties' Form.
- * 
- * @param string $form_name 
+ *
+ * @param string $form_name
  *   The name of the form which properties will be used.
  */
 function xml_form_builder_create_properties_store($form_name) {
@@ -156,10 +147,10 @@ EOT;
 
 /**
  * Creates an inline javascript file that creates an ExtJS store containing the form elements.
- * 
+ *
  * Used to populate the 'Elements Tree'.
- * 
- * @param string $form_name 
+ *
+ * @param string $form_name
  *   The name of the form which will be used.
  */
 function xml_form_builder_create_element_store($form_name) {
@@ -179,12 +170,12 @@ EOT;
 
 /**
  * Gets a list of all the existing element types defined by the elements hook.
- * 
+ *
  * @staticvar array $cache
  *   The cached list of existing element types.
- * 
+ *
  * @return array
- *   A list of all the existing element types. 
+ *   A list of all the existing element types.
  */
 function xml_form_builder_get_element_types() {
   static $cache;
