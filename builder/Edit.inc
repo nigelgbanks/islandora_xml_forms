@@ -16,6 +16,7 @@
  *   The html where the Form Builder GUI will be rendered.
  */
 function xml_form_builder_edit($form_name) {
+  module_load_include('inc', 'extjs', 'extjs.utils');
   xml_form_builder_edit_include_css();
   xml_form_builder_edit_include_js();
   xml_form_builder_create_element_type_store();
