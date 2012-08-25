@@ -30,7 +30,6 @@ function xml_form_builder_edit($form_name) {
  */
 function xml_form_builder_edit_include_css() {
   $css_path = drupal_get_path('module', 'xml_form_builder') . '/css';
-  drupal_add_css("$css_path/Clear.css");
   drupal_add_css("$css_path/EditForm.css");
   extjs_add_css_file('ext-all');
 }
