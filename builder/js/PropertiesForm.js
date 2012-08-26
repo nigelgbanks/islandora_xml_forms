@@ -1,10 +1,11 @@
-/* 
+
+/*
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
 
 /**
- * 
+ *
  */
 Ext.formbuilder.createPropertiesForm = function() {
     return Ext.create('Ext.form.Panel', {
@@ -47,7 +48,7 @@ Ext.formbuilder.createPropertiesForm = function() {
             height: 300,
             store: this.createMapStore(),
             modelInitTmpl: {
-                key: '', 
+                key: '',
                 value: ''
             },
             columns: [{
@@ -73,7 +74,7 @@ Ext.formbuilder.createPropertiesForm = function() {
         listeners: {
             hide: function() {
                 Ext.formbuilder.savePropertiesForm();
-            }     
+            }
         }
     });
 };

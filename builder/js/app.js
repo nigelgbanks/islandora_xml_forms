@@ -264,6 +264,12 @@ Ext.onReady(function() {
       associatedKey: 'parent'
     }]
   });
+  // Stores
+  Ext.create('Ext.data.Store', {
+    storeId: 'ElementTypes',
+    fields: ['display', 'value'],
+    data: Drupal.settings.formbuilder.element_types
+  });
 
   // Widgets
   Ext.define('Ext.FormBuilder.FormGrid', {
@@ -535,7 +541,7 @@ Ext.onReady(function() {
               xtype: 'combobox',
               id: 'type',
               name: 'type',
-              store: this.elementTypeStore,
+              store: Ext.getStore('ElementTypes'),
               displayField: 'display',
               valueField: 'value',
               fieldLabel: 'Type',
@@ -638,11 +644,10 @@ Ext.onReady(function() {
                 editable: false,
                 allowBlank: false,
                 queryMode: 'local',
-                value: 'document',
+                value: 'parent',
                 id: 'actions-create-context',
                 name: 'actions_create_context',
                 store: new Ext.data.Store({
-                  storeId: 'ElementTypes',
                   fields: ['display', 'value'],
                   proxy: {
                     type: 'memory',
@@ -673,6 +678,7 @@ Ext.onReady(function() {
                 fieldLabel: 'Path',
                 name: 'actions_create_path',
                 id: 'actions-create-path',
+                value: 'self::node()',
                 width: 600,
                 listeners: {
                   render: function() {
@@ -713,7 +719,6 @@ Ext.onReady(function() {
                 id: 'actions-create-type',
                 value: 'element',
                 store: new Ext.data.Store({
-                  storeId: 'ElementTypes',
                   fields: ['display', 'value'],
                   proxy: {
                     type: 'memory',
@@ -774,11 +779,10 @@ Ext.onReady(function() {
                 editable: false,
                 allowBlank: false,
                 queryMode: 'local',
-                value: 'document',
+                value: 'parent',
                 name: 'actions_read_context',
                 id: 'actions-read-context',
                 store: new Ext.data.Store({
-                  storeId: 'ElementTypes',
                   fields: ['display', 'value'],
                   proxy: {
                     type: 'memory',
@@ -840,7 +844,6 @@ Ext.onReady(function() {
                 name: 'actions_update_context',
                 id: 'actions-update-context',
                 store: new Ext.data.Store({
-                  storeId: 'ElementTypes',
                   fields: ['display', 'value'],
                   proxy: {
                     type: 'memory',
@@ -922,7 +925,6 @@ Ext.onReady(function() {
                 name: 'actions_delete_context',
                 id: 'actions-delete-context',
                 store: new Ext.data.Store({
-                  storeId: 'ElementTypes',
                   fields: ['display', 'value'],
                   proxy: {
                     type: 'memory',
