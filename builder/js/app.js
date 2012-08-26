@@ -20,7 +20,7 @@ Ext.onReady(function() {
       defaultValue: ''
     }],
     getValue: function() {
-      return [this.get('value')];
+      return this.get('value');
     }
   });
   Ext.define('FormBuilder.data.MapModel', {
@@ -50,13 +50,7 @@ Ext.onReady(function() {
     type: 'array',
     convert: function(v, data) {
       if(v instanceof Array) {
-        var output = [];
-        $.each(v, function(i, n) {
-          output.push({
-            value: n
-          });
-        });
-        return output;
+        return v;
       }
       return [];
     }
@@ -65,16 +59,7 @@ Ext.onReady(function() {
     type: 'map',
     convert: function(v, data) {
       if(v instanceof Object) {
-        var obj = {};
-        for(key in v) {
-          if(key == '') {
-            obj.NULL = v[key];
-          }
-          else {
-            obj[key] = v[key];
-          }
-        }
-        return obj;
+        return v;
       }
       return {};
     }
@@ -304,7 +289,7 @@ Ext.onReady(function() {
     data: Drupal.settings.formbuilder.element_types
   });
   Ext.create('Ext.data.Store', {
-    storeId: 'FormBuilder.data.Properties',
+    storeId: 'Properties',
     model: 'FormBuilder.data.Properties',
     data: Drupal.settings.formbuilder.properties
   });
@@ -312,7 +297,7 @@ Ext.onReady(function() {
   // Widgets
   Ext.define('FormBuilder.grid.Panel', {
     extend: 'Ext.grid.Panel',
-    alias: 'widget.formgrid',
+    alias: 'widget.fbgrid',
     collapsible: true,
     iconCls: 'icon-grid',
     selType: 'rowmodel',
@@ -333,7 +318,7 @@ Ext.onReady(function() {
         iconCls: 'icon-add',
         text: 'Add',
         handler: function() {
-          var grid = this.up('formgrid');
+          var grid = this.up('fbgrid');
           var rec = new grid.store.model;
           grid.store.insert(0, rec);
           var plugin = grid.getPlugin();
@@ -346,7 +331,7 @@ Ext.onReady(function() {
         disabled: true,
         itemId: 'delete',
         handler: function() {
-          var grid = this.up('formgrid');
+          var grid = this.up('fbgrid');
           var selection = grid.getView().getSelectionModel().getSelection()[0];
           if (selection) {
             grid.store.remove(selection);
@@ -355,22 +340,24 @@ Ext.onReady(function() {
       }]
     }],
     getValue: function() {
-      var modelName = this.store.model.modelName;
-      var ret = (modelName == 'FormBuilder.data.ArrayModel') ? [] : {};
-      this.store.data.each(function(rec) {
-        Ext.override(ret, rec.getValue());
-      });
+      var model_name = this.store.model.modelName;
+      var is_array = model_name == 'FormBuilder.data.ArrayModel';
+      var ret = (is_array) ? [] : {};
+      var map = (is_array) ? function(rec) { ret.push(rec.getValue()); } : function(rec) { Ext.override(ret, rec.getValue());};
+      this.store.data.each(map);
       return ret;
     },
     setValue: function(value) {
+      var model_name = this.store.model.modelName;
+      var is_array = model_name == 'FormBuilder.data.ArrayModel';
       this.store.removeAll();
-      if(value instanceof Object) { // Map Model
-        for(key in value) {
-          this.store.add(new this.store.model({key: key, value: value[key]}));
-        }
-      } else { // Array Model @todo check if this works
+      if(Ext.isArray(value)) { // Array Model
         for(var i = 0; i < value.length; i++) {
           this.store.add(new this.store.model({value: value[i]}));
+        }
+      } else { // Map Model
+        for(key in value) {
+          this.store.add(new this.store.model({key: key, value: value[key]}));
         }
       }
     },
@@ -394,16 +381,18 @@ Ext.onReady(function() {
       }
     },
     getValue: function() {
-      var ret = {};
-      var prefix_length = (this.name + '_').length;
-      var fields = this.query('> component');
-      for(var i = 0; i < fields.length; i++) {
-        var field = fields[i];
-        if(typeof field.setValue != 'undefined') {
+      if(this.checkboxCmp.getValue()) {
+        var ret = {};
+        var prefix_length = (this.name + '_').length;
+        var fields = this.query('> component');
+        fields = Ext.Array.filter(fields, function(field) { return typeof field.setValue != 'undefined'; }, this);
+        for(var i = 0; i < fields.length; i++) {
+          var field = fields[i];
           ret[field.name.substring(prefix_length)] = field.getValue();
         }
+        return ret;
       }
-      return ret;
+      return undefined;
     },
     setValue: function(value) {
       this.clearFields();
@@ -586,14 +575,15 @@ Ext.onReady(function() {
         xtype: 'panel',
         margin: '1 1 1 0',
         frame: true,
-        store: Ext.getStore('FormBuilder.data.Properties'),
+        store: Ext.getStore('Properties'),
         save: function() {
           var record = this.store.getAt(0); // Only one record for properties.
           record.beginEdit();
           record.set('localName', this.down('#localName').getValue());
           record.set('schema', this.down('#schema').getValue());
           record.set('namespaces', this.down('#namespaces').getValue());
-          record.endEdit();
+          record.endEdit(true);
+          record.commit();
         },
         items:  [{
           xtype: 'fieldset',
@@ -623,7 +613,7 @@ Ext.onReady(function() {
             anchor: '100%'
           }]
         },{
-          xtype: 'formgrid',
+          xtype: 'fbgrid',
           title: 'Namespaces',
           id: 'namespaces',
           name: 'namespaces',
@@ -1804,7 +1794,7 @@ Ext.onReady(function() {
             title: 'More Advanced Controls',
             autoScroll: true,
             items: [{
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               id: 'attributes',
               name: 'attributes',
               title: 'Attributes',
@@ -1843,7 +1833,7 @@ Ext.onReady(function() {
                 }
               }
             }, {
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               id: 'element_validate',
               name: 'element_validate',
               title: 'Element Validate',
@@ -1873,7 +1863,7 @@ Ext.onReady(function() {
                 }
               }
             },  {
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               title: 'Process',
               id: 'process',
               name: 'process',
@@ -1902,7 +1892,7 @@ Ext.onReady(function() {
                 }
               }
             }, {
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               title: 'Pre Render',
               id: 'pre_render',
               name: 'pre_render',
@@ -1936,7 +1926,7 @@ Ext.onReady(function() {
                 }
               }
             }, {
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               title: 'Post Render',
               id: 'post_render',
               name: 'post_render',
@@ -1970,7 +1960,7 @@ Ext.onReady(function() {
                 }
               }
             }, {
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               title: 'After Build',
               id: 'after_build',
               name: 'after_build',
@@ -1999,7 +1989,7 @@ Ext.onReady(function() {
                 }
               }
             }, {
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               id: 'options',
               name: 'options',
               title: 'Options',
@@ -2037,7 +2027,7 @@ Ext.onReady(function() {
                 }
               }
             },  {
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               title: 'User Data',
               id: 'user_data',
               name: 'user_data',
@@ -2075,7 +2065,7 @@ Ext.onReady(function() {
                 }
               }
             }, {
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               title: 'Submit',
               id: 'submit',
               name: 'submit',
@@ -2105,7 +2095,7 @@ Ext.onReady(function() {
                 }
               }
             }, {
-              xtype: 'formgrid',
+              xtype: 'fbgrid',
               title: 'Validate',
               id: 'validate',
               name: 'validate',
@@ -2137,27 +2127,44 @@ Ext.onReady(function() {
             }]
           }]
         }],
+        populate: function(record) {
+          this.record = record;
+          var data = record.getData();
+          for(name in data) {
+            var field = this.down('component[name="' + name + '"]');
+            if(field && field.setValue) {
+              field.setValue(data[name]);
+            }
+          }
+        },
         save: function() {
-
+          if(typeof this.record != 'undefined' && this.record.parentNode) {
+            var fields = this.query('> component, > component > component > component');
+            fields = Ext.Array.filter(fields, function(field) { return typeof field.setValue != 'undefined'; }, this);
+            this.record.beginEdit();
+            for(var i = 0; i < fields.length; i++) {
+              var field = fields[i];
+              if(field && field.getValue) {
+                this.record.set(field.name, field.getValue());
+              }
+            }
+            this.record.beginEdit(true);
+            this.record.commit();
+          }
         },
         listeners: {
           added: function() {
             this.addManagedListener(Ext.getCmp('form-builder-tree'), 'selectionchange', function(view, selections) {
               if(selections.length > 0) {
-                var record = selections[0];
-                var data = record.getData();
-                for(name in data) {
-                  var field = this.down('component[name="' + name + '"]');
-                  if(field && field.setValue) {
-                    field.setValue(data[name]);
-                  }
-                }
+                this.save(); // Save before showing new element in form.
+                this.populate(selections[0])
               }
               Ext.getCmp('form-builder-main').getLayout().setActiveItem(this);
             }, this);
           },
           hide: function() {
-            this.save();
+            this.save(); // Save before showing Properties form or the Preview Panel.
+            this.record = undefined; // Unset the locally stored reference to the record
           }
         }
       }]
