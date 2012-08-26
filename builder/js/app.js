@@ -355,7 +355,8 @@ Ext.onReady(function() {
       }]
     }],
     getValue: function() {
-      var ret = {};
+      var modelName = this.store.model.modelName;
+      var ret = (modelName == 'FormBuilder.data.ArrayModel') ? [] : {};
       this.store.data.each(function(rec) {
         Ext.override(ret, rec.getValue());
       });
@@ -378,6 +379,43 @@ Ext.onReady(function() {
       this.on('selectionchange', function(selModel, selections) {
         this.down('#delete').setDisabled(selections.length === 0);
       }, this);
+    }
+  });
+  Ext.define('FormBuilder.form.FieldSet', {
+    extend: 'Ext.form.FieldSet',
+    alias: 'widget.fbfieldset',
+    checkboxToggle: true,
+    collapsed: true,
+    clearFields: function() {
+      var fields = this.queryBy(function(field) { return typeof field.setValue != 'undefined'; });
+      for(var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        field.setValue(field.originalValue);
+      }
+    },
+    getValue: function() {
+      var ret = {};
+      var prefix_length = (this.name + '_').length;
+      var fields = this.query('> component');
+      for(var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        if(typeof field.setValue != 'undefined') {
+          ret[field.name.substring(prefix_length)] = field.getValue();
+        }
+      }
+      return ret;
+    },
+    setValue: function(value) {
+      this.clearFields();
+      if(value instanceof Object) {
+        this.checkboxCmp.setValue(true);
+        for(name in value) {
+          var field = this.down('component[name="' + this.name + '_' + name + '"]'); // Prefixing structure assumed
+          if(field && field.setValue) {
+            field.setValue(value[name]);
+          }
+        }
+      }
     }
   });
 
@@ -648,7 +686,6 @@ Ext.onReady(function() {
         }, {
           xtype: 'tabpanel',
           height: 640,
-          id: 'xml-form-builder-element-form-tab-panel',
           plain: true,
           unstyled: true,
           defaults: {
@@ -752,346 +789,342 @@ Ext.onReady(function() {
                 }
               }
             }, {
-              xtype:'fieldset',
-              checkboxToggle: true,
-              collapsed: true,
-              title:'Create',
-              id: 'actions_create',
-              checkboxName: 'actions_create',
+              xtype:'fbfieldset',
+              title:'XML Generation Actions',
+              name: 'actions',
               items: [{
-                xtype: 'combobox',
-                fieldLabel: 'Path Context',
-                displayField: 'display',
-                valueField: 'value',
-                editable: false,
-                allowBlank: false,
-                queryMode: 'local',
-                value: 'parent',
-                id: 'actions-create-context',
-                name: 'actions_create_context',
-                store: new Ext.data.Store({
-                  fields: ['display', 'value'],
-                  proxy: {
-                    type: 'memory',
-                    reader: {
-                      type: 'json'
+                xtype:'fbfieldset',
+                title:'Create',
+                name: 'actions_create',
+                items: [{
+                  xtype: 'combobox',
+                  fieldLabel: 'Path Context',
+                  displayField: 'display',
+                  valueField: 'value',
+                  editable: false,
+                  allowBlank: false,
+                  queryMode: 'local',
+                  value: 'parent',
+                  id: 'actions-create-context',
+                  name: 'actions_create_context',
+                  store: new Ext.data.Store({
+                    fields: ['display', 'value'],
+                    proxy: {
+                      type: 'memory',
+                      reader: {
+                        type: 'json'
+                      }
+                    },
+                    data: [{
+                      display:'document',
+                      value:'document'
+                    },{
+                      display:'parent',
+                      value:'parent'
+                    }]
+                  }),
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-create-context',
+                        anchor: 'left',
+                        html: '<h3>Create - Context</h3>' +
+                          '<p class="help">The context in which the path will be executed in.</p>'
+                      });
                     }
-                  },
-                  data: [{
-                    display:'document',
-                    value:'document'
-                  },{
-                    display:'parent',
-                    value:'parent'
-                  }]
-                }),
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-create-context',
-                      anchor: 'left',
-                      html: '<h3>Create - Context</h3>' +
-                        '<p class="help">The context in which the path will be executed in.</p>'
-                    });
                   }
-                }
-              }, {
-                xtype: 'textfield',
-                fieldLabel: 'Path',
-                name: 'actions_create_path',
-                id: 'actions-create-path',
-                value: 'self::node()',
-                width: 600,
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-create-path',
-                      anchor: 'left',
-                      html: '<h3>Create - Path</h3>' +
-                        '<p class="help">An xpath to this element\'s parent element. This is used to detemine where this element will be inserted.</p>'
-                    });
-                  }
-                }
-              }, {
-                xtype: 'textfield',
-                fieldLabel: 'Schema',
-                name: 'actions_create_schema',
-                id: 'actions-create-schema',
-                width: 600,
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-create-schema',
-                      anchor: 'left',
-                      html: '<h3>Create - Schema</h3>' +
-                        '<p class="help">An xpath to the definition of this element\'s parent. The xpath is executed in the schema defined in this form\'s properties. This is used to determine the insert order for this element.</p>'
-                    });
-                  }
-                }
-              }, {
-                xtype: 'combobox',
-                fieldLabel: 'Type',
-                displayField: 'display',
-                valueField: 'value',
-                editable: false,
-                allowBlank: false,
-                queryMode: 'local',
-                value: 'document',
-                name: 'actions_create_type',
-                id: 'actions-create-type',
-                value: 'element',
-                store: new Ext.data.Store({
-                  fields: ['display', 'value'],
-                  proxy: {
-                    type: 'memory',
-                    reader: {
-                      type: 'json'
+                }, {
+                  xtype: 'textfield',
+                  fieldLabel: 'Path',
+                  name: 'actions_create_path',
+                  id: 'actions-create-path',
+                  value: 'self::node()',
+                  width: 600,
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-create-path',
+                        anchor: 'left',
+                        html: '<h3>Create - Path</h3>' +
+                          '<p class="help">An xpath to this element\'s parent element. This is used to detemine where this element will be inserted.</p>'
+                      });
                     }
-                  },
-                  data: [{
-                    display:'element',
-                    value:'element'
-                  }, {
-                    display:'attribute',
-                    value:'attribute'
-                  }, {
-                    display:'xml',
-                    value:'xml'
-                  }]
-                }),
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-create-type',
-                      anchor: 'left',
-                      html: '<h3>Create - Type</h3>' +
-                        '<p class="help">The type of node that will be created. If XML is specified, an xml snipped is expected in the value field.</p>'
-                    });
                   }
-                }
-              }, {
-                xtype: 'textarea',
-                fieldLabel: 'Value',
-                name: 'actions_create_value',
-                id: 'actions-create-value',
-                width: 600,
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-create-value',
-                      anchor: 'left',
-                      html: '<h3>Create - Value</h3>' +
-                        '<p class="help">If the type is either Element or Attribute, the name of the element or attribute is expected. If the type is XML, an XML snippet is expected where the value of the form field will be inserted where ever the string %value% is used in the xml snippet.</p>'
-                    });
-                  }
-                }
-              }]
-            }, {
-              xtype:'fieldset',
-              checkboxToggle: true,
-              collapsed: true,
-              title:'Read',
-              id: 'actions_read',
-              checkboxName: 'actions_read',
-              items: [{
-                xtype: 'combobox',
-                fieldLabel: 'Path Context',
-                displayField: 'display',
-                valueField: 'value',
-                editable: false,
-                allowBlank: false,
-                queryMode: 'local',
-                value: 'parent',
-                name: 'actions_read_context',
-                id: 'actions-read-context',
-                store: new Ext.data.Store({
-                  fields: ['display', 'value'],
-                  proxy: {
-                    type: 'memory',
-                    reader: {
-                      type: 'json'
+                }, {
+                  xtype: 'textfield',
+                  fieldLabel: 'Schema',
+                  name: 'actions_create_schema',
+                  id: 'actions-create-schema',
+                  width: 600,
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-create-schema',
+                        anchor: 'left',
+                        html: '<h3>Create - Schema</h3>' +
+                          '<p class="help">An xpath to the definition of this element\'s parent. The xpath is executed in the schema defined in this form\'s properties. This is used to determine the insert order for this element.</p>'
+                      });
                     }
-                  },
-                  data: [{
-                    display:'document',
-                    value:'document'
-                  },{
-                    display:'parent',
-                    value:'parent'
-                  }]
-                }),
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-read-context',
-                      anchor: 'left',
-                      html: '<h3>Read - Context</h3>' +
-                        '<p class="help">The context in which the path will be executed in.</p>'
-                    });
                   }
-                }
-              }, {
-                xtype: 'textfield',
-                fieldLabel: 'Path',
-                name: 'actions_read_path',
-                id: 'actions-read-path',
-                width: 600,
-                listeners: { //The context in which the path will be executed in.
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-read-path',
-                      anchor: 'left',
-                      html: '<h3>Read - Path</h3>' +
-                        '<p class="help">The xpath to the node this form field repersents. The nodes value will be used to auto populate this form field. The node selected by this xpath can be used as the self context for the update and delete actions.</p>'
-                    });
-                  }
-                }
-              }]
-            }, {
-              xtype:'fieldset',
-              checkboxToggle: true,
-              collapsed: true,
-              title:'Update',
-              id: 'actions_update',
-              checkboxName: 'actions_update',
-              items: [{
-                xtype: 'combobox',
-                fieldLabel: 'Path Context',
-                displayField: 'display',
-                valueField: 'value',
-                editable: false,
-                allowBlank: false,
-                queryMode: 'local',
-                value: 'self',
-                name: 'actions_update_context',
-                id: 'actions-update-context',
-                store: new Ext.data.Store({
-                  fields: ['display', 'value'],
-                  proxy: {
-                    type: 'memory',
-                    reader: {
-                      type: 'json'
+                }, {
+                  xtype: 'combobox',
+                  fieldLabel: 'Type',
+                  displayField: 'display',
+                  valueField: 'value',
+                  editable: false,
+                  allowBlank: false,
+                  queryMode: 'local',
+                  value: 'document',
+                  name: 'actions_create_type',
+                  id: 'actions-create-type',
+                  value: 'element',
+                  store: new Ext.data.Store({
+                    fields: ['display', 'value'],
+                    proxy: {
+                      type: 'memory',
+                      reader: {
+                        type: 'json'
+                      }
+                    },
+                    data: [{
+                      display:'element',
+                      value:'element'
+                    }, {
+                      display:'attribute',
+                      value:'attribute'
+                    }, {
+                      display:'xml',
+                      value:'xml'
+                    }]
+                  }),
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-create-type',
+                        anchor: 'left',
+                        html: '<h3>Create - Type</h3>' +
+                          '<p class="help">The type of node that will be created. If XML is specified, an xml snipped is expected in the value field.</p>'
+                      });
                     }
-                  },
-                  data: [{
-                    display:'document',
-                    value:'document'
-                  },{
-                    display:'parent',
-                    value:'parent'
-                  },{
-                    display:'self',
-                    value:'self'
-                  }]
-                }),
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-update-context',
-                      anchor: 'left',
-                      html: '<h3>Update - Context</h3>' +
-                        '<p class="help">The context in which the path will be executed in.</p>'
-                    });
                   }
-                }
-              }, {
-                xtype: 'textfield',
-                fieldLabel: 'Path',
-                value: 'self::node()',
-                name: 'actions_update_path',
-                id: 'actions-update-path',
-                width: 600,
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-update-path',
-                      anchor: 'left',
-                      html: '<h3>Update - Path</h3>' +
-                        '<p class="help">An xpath used to select one or more existing nodes within the document to update. The selected nodes values will be replaced by the value in the this form field.</p>'
-                    });
-                  }
-                }
-              }, {
-                xtype: 'textfield',
-                fieldLabel: 'Schema',
-                name: 'actions_update_schema',
-                id: 'actions-update-schema',
-                width: 600,
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-update-schema',
-                      anchor: 'left',
-                      html: '<h3>Update - Schema</h3>' +
-                        '<p class="help">An xpath to the definition of this element. The xpath is executed in the schema defined in this form\'s properties. This is used to automatically validate submitted values for this form field.</p>'
-                    });
-                  }
-                }
-              }]
-            }, {
-              xtype:'fieldset',
-              checkboxToggle: true,
-              collapsed: true,
-              title:'Delete',
-              id: 'actions_delete',
-              checkboxName: 'actions_delete',
-              items: [{
-                xtype: 'combobox',
-                fieldLabel: 'Path Context',
-                displayField: 'display',
-                valueField: 'value',
-                editable: false,
-                allowBlank: false,
-                queryMode: 'local',
-                value: 'self',
-                name: 'actions_delete_context',
-                id: 'actions-delete-context',
-                store: new Ext.data.Store({
-                  fields: ['display', 'value'],
-                  proxy: {
-                    type: 'memory',
-                    reader: {
-                      type: 'json'
+                }, {
+                  xtype: 'textarea',
+                  fieldLabel: 'Value',
+                  name: 'actions_create_value',
+                  id: 'actions-create-value',
+                  width: 600,
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-create-value',
+                        anchor: 'left',
+                        html: '<h3>Create - Value</h3>' +
+                          '<p class="help">If the type is either Element or Attribute, the name of the element or attribute is expected. If the type is XML, an XML snippet is expected where the value of the form field will be inserted where ever the string %value% is used in the xml snippet.</p>'
+                      });
                     }
-                  },
-                  data: [{
-                    display:'document',
-                    value:'document'
-                  },{
-                    display:'parent',
-                    value:'parent'
-                  },{
-                    display:'self',
-                    value:'self'
-                  }]
-                }),
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-delete-context',
-                      anchor: 'left',
-                      html: '<h3>Delete - Context</h3>' +
-                        '<p class="help">The context in which the path will be executed in.</p>'
-                    });
                   }
-                }
+                }]
               }, {
-                xtype: 'textfield',
-                fieldLabel: 'Path',
-                value: 'self::node()',
-                name: 'actions_delete_path',
-                id: 'actions-delete-path',
-                width: 600,
-                listeners: {
-                  render: function() {
-                    Ext.create('Ext.tip.ToolTip', {
-                      target: 'actions-delete-path',
-                      anchor: 'left',
-                      html: '<h3>Delete - Path</h3>' +
-                        '<p class="help">An xpath used to select one or more existing nodes within the document to delete. The selected nodes will be removed from the document.</p>'
-                    });
+                xtype:'fbfieldset',
+                title:'Read',
+                id: 'actions_read',
+                name: 'actions_read',
+                items: [{
+                  xtype: 'combobox',
+                  fieldLabel: 'Path Context',
+                  displayField: 'display',
+                  valueField: 'value',
+                  editable: false,
+                  allowBlank: false,
+                  queryMode: 'local',
+                  value: 'parent',
+                  name: 'actions_read_context',
+                  id: 'actions-read-context',
+                  store: new Ext.data.Store({
+                    fields: ['display', 'value'],
+                    proxy: {
+                      type: 'memory',
+                      reader: {
+                        type: 'json'
+                      }
+                    },
+                    data: [{
+                      display:'document',
+                      value:'document'
+                    },{
+                      display:'parent',
+                      value:'parent'
+                    }]
+                  }),
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-read-context',
+                        anchor: 'left',
+                        html: '<h3>Read - Context</h3>' +
+                          '<p class="help">The context in which the path will be executed in.</p>'
+                      });
+                    }
                   }
-                }
+                }, {
+                  xtype: 'textfield',
+                  fieldLabel: 'Path',
+                  name: 'actions_read_path',
+                  id: 'actions-read-path',
+                  width: 600,
+                  listeners: { //The context in which the path will be executed in.
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-read-path',
+                        anchor: 'left',
+                        html: '<h3>Read - Path</h3>' +
+                          '<p class="help">The xpath to the node this form field repersents. The nodes value will be used to auto populate this form field. The node selected by this xpath can be used as the self context for the update and delete actions.</p>'
+                      });
+                    }
+                  }
+                }]
+              }, {
+                xtype:'fbfieldset',
+                title:'Update',
+                id: 'actions_update',
+                name: 'actions_update',
+                items: [{
+                  xtype: 'combobox',
+                  fieldLabel: 'Path Context',
+                  displayField: 'display',
+                  valueField: 'value',
+                  editable: false,
+                  allowBlank: false,
+                  queryMode: 'local',
+                  value: 'self',
+                  name: 'actions_update_context',
+                  id: 'actions-update-context',
+                  store: new Ext.data.Store({
+                    fields: ['display', 'value'],
+                    proxy: {
+                      type: 'memory',
+                      reader: {
+                        type: 'json'
+                      }
+                    },
+                    data: [{
+                      display:'document',
+                      value:'document'
+                    },{
+                      display:'parent',
+                      value:'parent'
+                    },{
+                      display:'self',
+                      value:'self'
+                    }]
+                  }),
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-update-context',
+                        anchor: 'left',
+                        html: '<h3>Update - Context</h3>' +
+                          '<p class="help">The context in which the path will be executed in.</p>'
+                      });
+                    }
+                  }
+                }, {
+                  xtype: 'textfield',
+                  fieldLabel: 'Path',
+                  value: 'self::node()',
+                  name: 'actions_update_path',
+                  id: 'actions-update-path',
+                  width: 600,
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-update-path',
+                        anchor: 'left',
+                        html: '<h3>Update - Path</h3>' +
+                          '<p class="help">An xpath used to select one or more existing nodes within the document to update. The selected nodes values will be replaced by the value in the this form field.</p>'
+                      });
+                    }
+                  }
+                }, {
+                  xtype: 'textfield',
+                  fieldLabel: 'Schema',
+                  name: 'actions_update_schema',
+                  id: 'actions-update-schema',
+                  width: 600,
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-update-schema',
+                        anchor: 'left',
+                        html: '<h3>Update - Schema</h3>' +
+                          '<p class="help">An xpath to the definition of this element. The xpath is executed in the schema defined in this form\'s properties. This is used to automatically validate submitted values for this form field.</p>'
+                      });
+                    }
+                  }
+                }]
+              }, {
+                xtype:'fbfieldset',
+                title:'Delete',
+                id: 'actions_delete',
+                name: 'actions_delete',
+                items: [{
+                  xtype: 'combobox',
+                  fieldLabel: 'Path Context',
+                  displayField: 'display',
+                  valueField: 'value',
+                  editable: false,
+                  allowBlank: false,
+                  queryMode: 'local',
+                  value: 'self',
+                  name: 'actions_delete_context',
+                  id: 'actions-delete-context',
+                  store: new Ext.data.Store({
+                    fields: ['display', 'value'],
+                    proxy: {
+                      type: 'memory',
+                      reader: {
+                        type: 'json'
+                      }
+                    },
+                    data: [{
+                      display:'document',
+                      value:'document'
+                    },{
+                      display:'parent',
+                      value:'parent'
+                    },{
+                      display:'self',
+                      value:'self'
+                    }]
+                  }),
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-delete-context',
+                        anchor: 'left',
+                        html: '<h3>Delete - Context</h3>' +
+                          '<p class="help">The context in which the path will be executed in.</p>'
+                      });
+                    }
+                  }
+                }, {
+                  xtype: 'textfield',
+                  fieldLabel: 'Path',
+                  value: 'self::node()',
+                  name: 'actions_delete_path',
+                  id: 'actions-delete-path',
+                  width: 600,
+                  listeners: {
+                    render: function() {
+                      Ext.create('Ext.tip.ToolTip', {
+                        target: 'actions-delete-path',
+                        anchor: 'left',
+                        html: '<h3>Delete - Path</h3>' +
+                          '<p class="help">An xpath used to select one or more existing nodes within the document to delete. The selected nodes will be removed from the document.</p>'
+                      });
+                    }
+                  }
+                }]
               }]
             }]
           }, {
@@ -1564,16 +1597,10 @@ Ext.onReady(function() {
                 }
               }
             }, {
-              xtype:'fieldset',
-              checkboxToggle: true,
-              checkboxName: 'ahah',
-              collapsed: true,
+              xtype:'fbfieldset',
               title: 'Ahah',
               id: 'ahah',
-              layout: 'anchor',
-              defaults: {
-                anchor: '100%'
-              },
+              name: 'ahah',
               items: [{
                 xtype: 'textfield',
                 id: 'ahah-effect',
@@ -1672,11 +1699,9 @@ Ext.onReady(function() {
                   }
                 }
               }, {
-                xtype:'fieldset',
-                checkboxToggle: true,
-                collapsed: true,
-                checkboxName: 'ahah_progress',
+                xtype:'fbfieldset',
                 id: 'ahah_progress',
+                name: 'ahah_progress',
                 title: 'Progress',
                 items: [{
                   xtype: 'textfield',
@@ -2122,7 +2147,7 @@ Ext.onReady(function() {
                 var record = selections[0];
                 var data = record.getData();
                 for(name in data) {
-                  var field = this.down('#' + name);
+                  var field = this.down('component[name="' + name + '"]');
                   if(field && field.setValue) {
                     field.setValue(data[name]);
                   }
