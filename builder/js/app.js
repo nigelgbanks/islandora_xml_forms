@@ -18,10 +18,18 @@ Ext.onReady(function() {
       name: 'value', // This objects key in the form elements array.
       type: 'string',
       defaultValue: ''
-    }]
+    }],
+    getValue: function() {
+      return [this.get('value')];
+    }
   });
   Ext.define('MapModel', {
     extend: 'Ext.data.Model',
+    getValue: function() {
+      var ret = {};
+      ret[this.get('key')] = this.get('value');
+      return ret;
+    },
     proxy: {
       type: 'memory',
       reader: {
@@ -268,9 +276,9 @@ Ext.onReady(function() {
     extend: 'Ext.data.Model',
     proxy: {
       type: 'memory',
-        reader: {
-          type: 'json'
-        }
+      reader: {
+        type: 'json',
+      }
     },
     fields: [{
       name: 'localName',
@@ -346,6 +354,25 @@ Ext.onReady(function() {
         }
       }]
     }],
+    getValue: function() {
+      var ret = {};
+      this.store.data.each(function(rec) {
+        Ext.override(ret, rec.getValue());
+      });
+      return ret;
+    },
+    setValue: function(value) {
+      this.store.removeAll();
+      if(value instanceof Object) { // Map Model
+        for(key in value) {
+          this.store.add(new this.store.model({key: key, value: value[key]}));
+        }
+      } else { // Array Model @todo check if this works
+        for(var i = 0; i < value.length; i++) {
+          this.store.add(new this.store.model({value: value[i]}));
+        }
+      }
+    },
     constructor: function(config) {
       this.callParent(arguments);
       this.on('selectionchange', function(selModel, selections) {
@@ -356,11 +383,12 @@ Ext.onReady(function() {
 
   // Application
   Ext.create('Ext.panel.Panel', {
-    width: 960,
+    id: 'form-builder',
+    width: 915,
     height: 820,
     title: 'Form Editor',
     layout: 'border',
-    renderTo: 'form-builder',
+    renderTo: 'form-builder-container',
     defaults: {
       margin: '1 0 1 0',
       frame: true
@@ -371,7 +399,7 @@ Ext.onReady(function() {
         xtype: 'button',
         text: 'Form Properties',
         handler: function() {
-          // @todo show the Form Properties card.
+          Ext.getCmp('form-builder-main').getLayout().setActiveItem('property-form');
         }
       },{
         xtype: 'tbfill'
@@ -379,7 +407,10 @@ Ext.onReady(function() {
         xtype: 'button',
         text: 'Save & Preview',
         handler: function() {
-          // @todo Save and Show the iFrame
+          // @todo Save
+          Ext.getCmp('form-builder-main').getLayout().setActiveItem('preview'); // Triggers a save of the open element/properties form.
+          Ext.getCmp('form-builder').save(); // Saves to the server
+          Ext.getCmp('form-builder-main').down('preview').refresh();
         }
       },{
         xtype: 'tbseparator'
@@ -390,6 +421,9 @@ Ext.onReady(function() {
           // @todo Save and don't show the iFrame
         }
       }]
+    },
+    // Saves All Property/Element data to the server.
+    save: function() {
     },
     // Children  of Main Panel
     items: [{ // Element tree
@@ -442,8 +476,10 @@ Ext.onReady(function() {
       listeners: {
         itemmousedown: function() {
           // @todo Show Element form
+          Ext.getCmp('form-builder-main').getLayout().setActiveItem('element-form');
         },
         selectionchange: function(view, selections) {
+          Ext.getCmp('form-builder-main').getLayout().setActiveItem('element-form');
           // @todo Autosave the form values to the node.
           // @todo Show the different element form prepopulated with the selection.
         }
@@ -453,7 +489,7 @@ Ext.onReady(function() {
       xtype: 'panel',
       region: 'center',
       layout: 'card',
-      activeItem: 'element-form',
+      activeItem: 'preview',
       margin: '1 1 1 0',
       unstyled: true,
       defaults: {
@@ -470,6 +506,15 @@ Ext.onReady(function() {
         xtype: 'panel',
         margin: '1 1 1 0',
         frame: true,
+        store: Ext.getStore('Properties'),
+        save: function() {
+          var record = this.store.getAt(0); // Only one record for properties.
+          record.beginEdit();
+          record.set('localName', this.down('#localName').getValue());
+          record.set('schema', this.down('#schema').getValue());
+          record.set('namespaces', this.down('#namespaces').getValue());
+          record.endEdit();
+        },
         items:  [{
           xtype: 'fieldset',
           title: 'Root Element',
@@ -528,7 +573,13 @@ Ext.onReady(function() {
         }],
         listeners: {
           hide: function() {
-            // @todo Save the Form Properties when another card is displayed.
+            this.save();
+          },
+          show: function() {
+            var record = this.store.getAt(0); // Only one record for properties.
+            this.down('#localName').setValue(record.get('localName'));
+            this.down('#schema').setValue(record.get('schema'));
+            this.down('#namespaces').setValue(record.get('namespaces'));
           }
         }
       }, {
@@ -1728,17 +1779,8 @@ Ext.onReady(function() {
               id: 'element_validate',
               name: 'element_validate',
               title: 'Element Validate',
-              store: Ext.create('Ext.data.Store', {
-                fields:['value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                value: ''
+              store: {
+                model: 'ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1767,17 +1809,8 @@ Ext.onReady(function() {
               title: 'Process',
               id: 'process',
               name: 'process',
-              store: Ext.create('Ext.data.Store', {
-                fields:['value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                value: ''
+              store: {
+                model: 'ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1805,17 +1838,8 @@ Ext.onReady(function() {
               title: 'Pre Render',
               id: 'pre_render',
               name: 'pre_render',
-              store: Ext.create('Ext.data.Store', {
-                fields:['value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                value: ''
+              store: {
+                model: 'ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1848,17 +1872,8 @@ Ext.onReady(function() {
               title: 'Post Render',
               id: 'post_render',
               name: 'post_render',
-              store: Ext.create('Ext.data.Store', {
-                fields:['value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                value: ''
+              store: {
+                model: 'ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1891,17 +1906,8 @@ Ext.onReady(function() {
               title: 'After Build',
               id: 'after_build',
               name: 'after_build',
-              store: Ext.create('Ext.data.Store', {
-                fields:['value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                value: ''
+              store: {
+                model: 'ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1929,18 +1935,8 @@ Ext.onReady(function() {
               id: 'options',
               name: 'options',
               title: 'Options',
-              store: Ext.create('Ext.data.Store', {
-                fields:['key', 'value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                key: '',
-                value: ''
+              store: {
+                model: 'MapModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1977,18 +1973,8 @@ Ext.onReady(function() {
               title: 'User Data',
               id: 'user_data',
               name: 'user_data',
-              store: Ext.create('Ext.data.Store', {
-                fields:['key', 'value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                key: '',
-                value: ''
+              store: {
+                model: 'MapModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -2025,17 +2011,8 @@ Ext.onReady(function() {
               title: 'Submit',
               id: 'submit',
               name: 'submit',
-              store: Ext.create('Ext.data.Store', {
-                fields:['value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                value: ''
+              store: {
+                model: 'ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -2101,15 +2078,9 @@ Ext.onReady(function() {
             }]
           }]
         }],
-        buttons: [{
-          text: 'Clear',
-          handler: function() {
-            this.up('form').getForm().reset();
-          }
-        }],
         listeners: {
           hide: function() {
-            Ext.formbuilder.saveElementForm();
+            // @todo Save the form value back to the node.
           }
         }
       }]
