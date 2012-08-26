@@ -29,7 +29,7 @@ function xml_form_builder_requirements($phase) {
     return;
   }
   return array(
-    'xml_form_builder' => extjs_get_version_requirement('Islandora XML Form Builder', '4.1.0')
+    'xml_form_builder' => extjs_get_version_requirement('Islandora XML Form Builder', '4.1.1')
   );
 }
 

@@ -1,64 +1,51 @@
-/* 
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/**
- * A grid that can be used to enter information in a form. 
- * Requires some extra logic to be populated and submitted.
- */
-Ext.define('Form.Grid', {
+Ext.define('Ext.Form.Grid', {
   extend: 'Ext.grid.Panel',
   alias: 'widget.formgrid',
-  initComponent: function() {
-    var me = this;
-    Ext.apply(me, {
-      height: 200,
-      collapsible: true,
-      iconCls: 'icon-grid',
-      selType: 'rowmodel',
-      plugins:[ Ext.create('Ext.grid.plugin.RowEditing', {
-        clicksToEdit: 2
-      }) ],
-      viewConfig: {
-        plugins: {
-          ptype: 'gridviewdragdrop',
-          dragText: 'Drag and drop to reorganize'
-        }
-      },
-      dockedItems: [{
-        xtype: 'toolbar',
-        items: [{
-          iconCls: 'icon-add',
-          text: 'Add',
-          scope: this,
-          handler: function() {
-            var rec = Ext.ModelManager.create(me.modelInitTmpl, me.store.model.modelName);
-            var plugin = me.getPlugin();
-            plugin.cancelEdit();
-            this.store.insert(0, rec);
-            plugin.startEdit(rec, me.columns[0]);
-          }
-        }, {
-          iconCls: 'icon-delete',
-          text: 'Delete',
-          disabled: true,
-          itemId: 'delete',
-          scope: this,
-          handler: function() {
-            var selection = me.getView().getSelectionModel().getSelection()[0];
-            if (selection) {
-              this.store.remove(selection);
-            }
-          }
-        }]
-      }],
-      listeners: {
-        selectionchange: function(selModel, selections) {
-          this.down('#delete').setDisabled(selections.length === 0);
+  collapsible: true,
+  iconCls: 'icon-grid',
+  selType: 'rowmodel',
+  height: 200,
+  plugins: {
+    ptype: 'rowediting',
+    clicksToEdit: 2
+  },
+  viewConfig: {
+    plugins: {
+      ptype: 'gridviewdragdrop',
+      dragText: 'Drag and drop to reorganize'
+    }
+  },
+  tbar: [{
+    xtype: 'toolbar',
+    items: [{
+      iconCls: 'icon-add',
+      text: 'Add',
+      handler: function() {
+        var grid = this.up('formgrid');
+        console.log(grid);
+        var rec = new grid.store.model;
+        grid.store.insert(0, rec);
+        var plugin = grid.getPlugin();
+        plugin.cancelEdit();
+        plugin.startEdit(rec, grid.columns[0]);
+      }
+    }, {
+      iconCls: 'icon-delete',
+      text: 'Delete',
+      disabled: true,
+      itemId: 'delete',
+      handler: function() {
+        var grid = this.up('formgrid');
+        var selection = grid.getView().getSelectionModel().getSelection()[0];
+        if (selection) {
+          grid.store.remove(selection);
         }
       }
-    });
-    me.callParent();
+    }]
+  }],
+  listeners: {
+    selectionchange: function(selModel, selections) {
+      this.down('#delete').setDisabled(selections.length === 0);
+    }
   }
 });

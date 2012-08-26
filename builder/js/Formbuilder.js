@@ -1,4 +1,4 @@
-/* 
+/*
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
@@ -6,7 +6,7 @@
  * Create Namespace for this application.
  */
 Ext.ns('Ext.formbuilder');
-
+Ext.scopeResetCSS = true; // Only apply Ext JS classes to Ext JS Components
 /**
  * Application Object.
  */
@@ -74,7 +74,7 @@ Ext.formbuilder = (function() {
       if(record.data['namespaces'] instanceof Object) {
         $.each(record.data['namespaces'], function(i, n) {
           namespaces.push({
-            key: i, 
+            key: i,
             value: n
           });
         });

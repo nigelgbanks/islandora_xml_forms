@@ -17,28 +17,34 @@
  */
 function xml_form_builder_edit($form_name) {
   module_load_include('inc', 'extjs', 'extjs.utils');
+  extjs_add_drupal_reset_css_files();
+  drupal_add_css(drupal_get_path('module', 'xml_form_builder') . '/css/ext-all-scoped-custom.css');
+  drupal_add_css(drupal_get_path('module', 'xml_form_builder') . '/css/icons.css');
+  drupal_add_js(drupal_get_path('module', 'xml_form_builder') . '/js/test.js');
+  extjs_add_js_file('ext-all');
+  drupal_add_js(drupal_get_path('module', 'xml_form_builder') . '/js/app.js');
+  drupal_add_js(drupal_get_path('module', 'xml_form_builder') . '/js/FormGrid.js');
+  /*extjs_add_all();
   xml_form_builder_edit_include_css();
   xml_form_builder_edit_include_js();
   xml_form_builder_create_element_type_store();
   xml_form_builder_create_element_store($form_name);
-  xml_form_builder_create_properties_store($form_name);
-  return '<div id="xml-form-builder-editor"></div>';
+  xml_form_builder_create_properties_store($form_name); */
+  return '<div id="form-builder"></div>';
+  //return '<div id="xml-form-builder-editor"></div>';
 }
 
 /**
  * Includes all the required CSS files needed to render the Form Builder GUI.
  */
 function xml_form_builder_edit_include_css() {
-  $css_path = drupal_get_path('module', 'xml_form_builder') . '/css';
-  drupal_add_css("$css_path/EditForm.css");
-  extjs_add_css_file('ext-all');
+  drupal_add_css(drupal_get_path('module', 'xml_form_builder') . '/css/EditForm.css');
 }
 
 /**
  * Includes all the required JS files needed to render the Form Builder GUI.
  */
 function xml_form_builder_edit_include_js() {
-  extjs_add_all();
   $js_path = drupal_get_path('module', 'xml_form_builder') . '/js';
   $files = array(
     'Formbuilder.js',
