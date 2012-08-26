@@ -2100,7 +2100,7 @@ Ext.onReady(function() {
               id: 'validate',
               name: 'validate',
               store: {
-                model: 'FormBuilder.data.MapModel'
+                model: 'FormBuilder.data.ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
