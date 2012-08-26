@@ -2,7 +2,7 @@
  * @file
  *  Defines the Form Builder Ext JS application.
  */
-Ext.ns('Formbuilder');
+Ext.ns('FormBuilder');
 Ext.onReady(function() {
   // Models
   var types = Ext.data.Types;
@@ -264,17 +264,42 @@ Ext.onReady(function() {
       associatedKey: 'parent'
     }]
   });
+  Ext.define('Properties', {
+    extend: 'Ext.data.Model',
+    proxy: {
+      type: 'memory',
+        reader: {
+          type: 'json'
+        }
+    },
+    fields: [{
+      name: 'localName',
+      type: 'string'
+    }, {
+      name: 'prefix',
+      type: 'string'
+    }, {
+      name: 'uri',
+      type: 'string'
+    }, {
+      name: 'namespaces',
+      type: types.MAP
+    }, {
+      name: 'schema',
+      type: 'string'
+    }]
+  });
   // Stores
   Ext.create('Ext.data.Store', {
     storeId: 'ElementTypes',
     fields: ['display', 'value'],
     data: Drupal.settings.formbuilder.element_types
   });
-  /*Ext.create('Ext.data.TreeStore', {
-    storeId: 'Elements',
-    model: 'Element',
-    root: Drupal.settings.formbuilder.elements
-  });*/
+  Ext.create('Ext.data.Store', {
+    storeId: 'Properties',
+    model: 'Properties',
+    data: Drupal.settings.formbuilder.properties
+  });
 
   // Widgets
   Ext.define('Ext.FormBuilder.FormGrid', {
@@ -323,7 +348,7 @@ Ext.onReady(function() {
       }]
     }],
     listeners: {
-      selectionchange: function(selModel, selections) {
+      select: function(selModel, selections) {
         this.down('#delete').setDisabled(selections.length === 0);
       }
     }
@@ -480,10 +505,6 @@ Ext.onReady(function() {
           height: 300,
           store: {
             model: 'MapModel'
-          },
-          modelInitTmpl: {
-            key: '',
-            value: ''
           },
           columns: [{
             xtype: 'gridcolumn',
@@ -1668,18 +1689,8 @@ Ext.onReady(function() {
               id: 'attributes',
               name: 'attributes',
               title: 'Attributes',
-              store: Ext.create('Ext.data.Store', {
-                fields:['key', 'value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                key: '',
-                value: ''
+              store: {
+                model: 'MapModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
