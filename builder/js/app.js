@@ -270,6 +270,11 @@ Ext.onReady(function() {
     fields: ['display', 'value'],
     data: Drupal.settings.formbuilder.element_types
   });
+  /*Ext.create('Ext.data.TreeStore', {
+    storeId: 'Elements',
+    model: 'Element',
+    root: Drupal.settings.formbuilder.elements
+  });*/
 
   // Widgets
   Ext.define('Ext.FormBuilder.FormGrid', {
@@ -370,15 +375,17 @@ Ext.onReady(function() {
           ptype: 'treeviewdragdrop'
         }
       },
-      store: {
-        model: 'Element'
-      },
       region: 'west',
       width: 230,
       margin: '1 0 1 1',
       autoScroll: true,
       rootVisible: false,
       split: true,
+      store: {
+        storeId: 'Elements',
+        model: 'Element',
+        root: Drupal.settings.formbuilder.elements
+      },
       tbar: {
         xtype: 'toolbar',
         items: [{
