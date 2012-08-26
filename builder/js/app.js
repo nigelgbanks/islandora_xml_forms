@@ -6,7 +6,7 @@ Ext.ns('FormBuilder');
 Ext.onReady(function() {
   // Models
   var types = Ext.data.Types;
-  Ext.define('ArrayModel', {
+  Ext.define('FormBuilder.data.ArrayModel', {
     extend: 'Ext.data.Model',
     proxy: {
       type: 'memory',
@@ -23,7 +23,7 @@ Ext.onReady(function() {
       return [this.get('value')];
     }
   });
-  Ext.define('MapModel', {
+  Ext.define('FormBuilder.data.MapModel', {
     extend: 'Ext.data.Model',
     getValue: function() {
       var ret = {};
@@ -120,7 +120,7 @@ Ext.onReady(function() {
       type: types.AHAH_PROCESS
     }]
   }
-  Ext.define('Element', {
+  Ext.define('FormBuilder.data.ElementModel', {
     extend: 'Ext.data.Model',
     proxy: {
       type: 'memory',
@@ -264,20 +264,20 @@ Ext.onReady(function() {
     }],
     associations: [{
       type: 'hasMany',
-      model: 'Element',
+      model: 'FormBuilder.data.ElementModel',
       associationKey: 'children'
     }, {
       type: 'belongsTo',
-      model: 'Element',
+      model: 'FormBuilder.data.ElementModel',
       associatedKey: 'parent'
     }]
   });
-  Ext.define('Properties', {
+  Ext.define('FormBuilder.data.Properties', {
     extend: 'Ext.data.Model',
     proxy: {
       type: 'memory',
       reader: {
-        type: 'json',
+        type: 'json'
       }
     },
     fields: [{
@@ -304,13 +304,13 @@ Ext.onReady(function() {
     data: Drupal.settings.formbuilder.element_types
   });
   Ext.create('Ext.data.Store', {
-    storeId: 'Properties',
-    model: 'Properties',
+    storeId: 'FormBuilder.data.Properties',
+    model: 'FormBuilder.data.Properties',
     data: Drupal.settings.formbuilder.properties
   });
 
   // Widgets
-  Ext.define('Ext.FormBuilder.FormGrid', {
+  Ext.define('FormBuilder.grid.Panel', {
     extend: 'Ext.grid.Panel',
     alias: 'widget.formgrid',
     collapsible: true,
@@ -408,9 +408,9 @@ Ext.onReady(function() {
         text: 'Save & Preview',
         handler: function() {
           // @todo Save
-          Ext.getCmp('form-builder-main').getLayout().setActiveItem('preview'); // Triggers a save of the open element/properties form.
           Ext.getCmp('form-builder').save(); // Saves to the server
-          Ext.getCmp('form-builder-main').down('preview').refresh();
+          Ext.getCmp('form-builder-main').down('#preview').update("<iframe src='" + window.location.pathname.replace(/\/edit/i, '/view') + "' width='100%' height='100%'><p>Your browser does not support iframes.</p></iframe>");
+          Ext.getCmp('form-builder-main').getLayout().setActiveItem('preview'); // Triggers a save of the open element/properties form.
         }
       },{
         xtype: 'tbseparator'
@@ -427,6 +427,7 @@ Ext.onReady(function() {
     },
     // Children  of Main Panel
     items: [{ // Element tree
+      id: 'form-builder-tree',
       title: 'Elements',
       'xtype': 'treepanel',
       viewConfig: {
@@ -442,7 +443,7 @@ Ext.onReady(function() {
       split: true,
       store: {
         storeId: 'Elements',
-        model: 'Element',
+        model: 'FormBuilder.data.ElementModel',
         root: Drupal.settings.formbuilder.elements
       },
       tbar: {
@@ -476,10 +477,10 @@ Ext.onReady(function() {
       listeners: {
         itemmousedown: function() {
           // @todo Show Element form
-          Ext.getCmp('form-builder-main').getLayout().setActiveItem('element-form');
+          //Ext.getCmp('form-builder-main').getLayout().setActiveItem('element-form');
         },
         selectionchange: function(view, selections) {
-          Ext.getCmp('form-builder-main').getLayout().setActiveItem('element-form');
+          //Ext.getCmp('form-builder-main').getLayout().setActiveItem('element-form');
           // @todo Autosave the form values to the node.
           // @todo Show the different element form prepopulated with the selection.
         }
@@ -506,7 +507,7 @@ Ext.onReady(function() {
         xtype: 'panel',
         margin: '1 1 1 0',
         frame: true,
-        store: Ext.getStore('Properties'),
+        store: Ext.getStore('FormBuilder.data.Properties'),
         save: function() {
           var record = this.store.getAt(0); // Only one record for properties.
           record.beginEdit();
@@ -549,7 +550,7 @@ Ext.onReady(function() {
           name: 'namespaces',
           height: 300,
           store: {
-            model: 'MapModel'
+            model: 'FormBuilder.data.MapModel'
           },
           columns: [{
             xtype: 'gridcolumn',
@@ -620,6 +621,7 @@ Ext.onReady(function() {
               xtype: 'combobox',
               id: 'type',
               name: 'type',
+              value: 'markup',
               store: Ext.getStore('ElementTypes'),
               displayField: 'display',
               valueField: 'value',
@@ -1741,7 +1743,7 @@ Ext.onReady(function() {
               name: 'attributes',
               title: 'Attributes',
               store: {
-                model: 'MapModel'
+                model: 'FormBuilder.data.MapModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1780,7 +1782,7 @@ Ext.onReady(function() {
               name: 'element_validate',
               title: 'Element Validate',
               store: {
-                model: 'ArrayModel'
+                model: 'FormBuilder.data.ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1810,7 +1812,7 @@ Ext.onReady(function() {
               id: 'process',
               name: 'process',
               store: {
-                model: 'ArrayModel'
+                model: 'FormBuilder.data.ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1839,7 +1841,7 @@ Ext.onReady(function() {
               id: 'pre_render',
               name: 'pre_render',
               store: {
-                model: 'ArrayModel'
+                model: 'FormBuilder.data.ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1873,7 +1875,7 @@ Ext.onReady(function() {
               id: 'post_render',
               name: 'post_render',
               store: {
-                model: 'ArrayModel'
+                model: 'FormBuilder.data.ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1907,7 +1909,7 @@ Ext.onReady(function() {
               id: 'after_build',
               name: 'after_build',
               store: {
-                model: 'ArrayModel'
+                model: 'FormBuilder.data.ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1936,7 +1938,7 @@ Ext.onReady(function() {
               name: 'options',
               title: 'Options',
               store: {
-                model: 'MapModel'
+                model: 'FormBuilder.data.MapModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -1974,7 +1976,7 @@ Ext.onReady(function() {
               id: 'user_data',
               name: 'user_data',
               store: {
-                model: 'MapModel'
+                model: 'FormBuilder.data.MapModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -2012,7 +2014,7 @@ Ext.onReady(function() {
               id: 'submit',
               name: 'submit',
               store: {
-                model: 'ArrayModel'
+                model: 'FormBuilder.data.ArrayModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -2041,17 +2043,8 @@ Ext.onReady(function() {
               title: 'Validate',
               id: 'validate',
               name: 'validate',
-              store: Ext.create('Ext.data.Store', {
-                fields:['value'],
-                proxy: {
-                  type: 'memory',
-                  reader: {
-                    type: 'json'
-                  }
-                }
-              }),
-              modelInitTmpl: {
-                value: ''
+              store: {
+                model: 'FormBuilder.data.MapModel'
               },
               columns: [{
                 xtype: 'gridcolumn',
@@ -2078,9 +2071,27 @@ Ext.onReady(function() {
             }]
           }]
         }],
+        save: function() {
+
+        },
         listeners: {
+          added: function() {
+            this.addManagedListener(Ext.getCmp('form-builder-tree'), 'selectionchange', function(view, selections) {
+              if(selections.length > 0) {
+                var record = selections[0];
+                var data = record.getData();
+                for(name in data) {
+                  var field = this.down('#' + name);
+                  if(field && field.setValue) {
+                    field.setValue(data[name]);
+                  }
+                }
+              }
+              Ext.getCmp('form-builder-main').getLayout().setActiveItem(this);
+            }, this);
+          },
           hide: function() {
-            // @todo Save the form value back to the node.
+            this.save();
           }
         }
       }]
