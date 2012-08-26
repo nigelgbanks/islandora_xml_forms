@@ -326,7 +326,6 @@ Ext.onReady(function() {
         text: 'Add',
         handler: function() {
           var grid = this.up('formgrid');
-          console.log(grid);
           var rec = new grid.store.model;
           grid.store.insert(0, rec);
           var plugin = grid.getPlugin();
@@ -347,10 +346,11 @@ Ext.onReady(function() {
         }
       }]
     }],
-    listeners: {
-      select: function(selModel, selections) {
+    constructor: function(config) {
+      this.callParent(arguments);
+      this.on('selectionchange', function(selModel, selections) {
         this.down('#delete').setDisabled(selections.length === 0);
-      }
+      }, this);
     }
   });
 
