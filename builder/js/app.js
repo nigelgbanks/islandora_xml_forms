@@ -452,27 +452,68 @@ Ext.onReady(function() {
           xtype: 'button',
           text: 'Add',
           handler: function() {
-            // @todo Add a new tree node
+            this.up('treepanel').addToSelection();
           }
         }, {
           xtype: 'button',
           text: 'Copy',
           handler: function() {
-            // @todo Do a deep copy of a give node
+            this.up('treepanel').copySelection();             // @todo Do a deep copy of a give node
           }
         }, {
           xtype: 'button',
           text: 'Paste',
           handler: function() {
-            // @todo Insert the copied node.
+            this.up('treepanel').pasteSelection();
           }
         }, {
           xtype: 'button',
           text: 'Delete',
           handler: function() {
-            // @todo Delete the currently selected node
+            this.up('treepanel').removeSelection();
           }
         }]
+      },
+      getSelection: function() {
+        var selection_model = this.getSelectionModel();
+        var selection = selection_model.getSelection();
+        if(selection.length > 0 && selection[0].parentNode) {
+          return selection[0];
+        }
+        return null;
+      },
+      copySelection: function() {
+        var selection = this.getSelection();
+        if(selection) {
+          this.clipboard = selection;
+        }
+      },
+      pasteSelection: function() {
+        var selection = this.getSelection();
+        if(selection && this.clipboard) {
+          var node = this.clipboard.copy();
+          Ext.data.Model.id(node);
+          this.appendToSelection(node, selection);
+        }
+      },
+      removeSelection: function() {
+        var selection = this.getSelection();
+        if(selection) {
+          selection.remove(true);
+        }
+      },
+      appendToSelection: function(node, selection) {
+        selection.appendChild(node);
+        selection.expand();
+        this.getSelectionModel().select(node);
+      },
+      addToSelection: function() {
+        var selection = this.getSelection();
+        if(selection) {
+          var element = new FormBuilder.data.ElementModel();
+          var node = selection.createNode(element);
+          this.appendToSelection(node, selection);
+        }
       },
       listeners: {
         itemmousedown: function() {
