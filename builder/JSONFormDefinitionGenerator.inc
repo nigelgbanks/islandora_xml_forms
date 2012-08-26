@@ -13,13 +13,13 @@ class JSONFormDefinitionGenerator {
 
   /**
    * Creates an array that contains two JSON strings, which define the form properties and the form.
-   * 
+   *
    * @param array $properties
    *   The form properties.
-   * 
-   * @param array $form 
+   *
+   * @param array $form
    *   A Drupal form.
-   * 
+   *
    * @return array
    *   An array where the first value is a JSON string that describes the form properties and the second value
    *   is a JSON string that describes the drupal form.
@@ -33,10 +33,10 @@ class JSONFormDefinitionGenerator {
 
   /**
    * Gets the Form Properties as a JSON string.
-   * 
+   *
    * @param array $properties
    *   The Form Properties.
-   * 
+   *
    * @return string
    *   The JSON repersentation of the Form Properties.
    */
@@ -48,15 +48,15 @@ class JSONFormDefinitionGenerator {
       'namespaces' => $namespaces,
       'schema' => isset($properties['schema_uri']) ? $properties['schema_uri'] : NULL
     );
-    return json_encode(array($properties));
+    return array($properties);
   }
 
   /**
    * Gets the Drupal Form as a JSON string.
-   * 
+   *
    * @param array $form
    *   The Drupal Form.
-   * 
+   *
    * @return string
    *   The JSON repersentation of the Drupal Form.
    */
@@ -64,20 +64,21 @@ class JSONFormDefinitionGenerator {
     $elements = array(
       'key' => 'Root',
       'text' => 'Elements',
+      'expanded' => TRUE,
       'children' => array()
     );
     $elements = self::GetElement($form);
     $elements['key'] = empty($elements['key']) ? 'Root' : $elements['key'];
     $elements['text'] = "{$elements['key']} ({$elements['type']})";
-    return json_encode(array('expanded' => TRUE, 'children' => $elements));
+    return array('expanded' => TRUE, 'children' => $elements);
   }
 
   /**
    * Gets a Drupal Form Element as a JSON string.
-   * 
+   *
    * @param array $element
    *   A Drupal Form Element.
-   * 
+   *
    * @return array
    *   An array that repersents a ExtJS JSON object that repersents the Drupal Form Element.
    */
@@ -91,6 +92,7 @@ class JSONFormDefinitionGenerator {
     foreach (element_children($element) as $key) {
       $json['children'][] = self::GetElement($element[$key], $key);
     }
+    $json['expanded'] = true; // ExtJS specific
     $json['key'] = $identifier; // ExtJS specific
     $json['text'] = "{$identifier} ({$element['#type']})"; // ExtJS specific
     return $json;

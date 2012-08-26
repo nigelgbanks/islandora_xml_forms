@@ -23,14 +23,14 @@ function xml_form_builder_edit($form_name) {
   drupal_add_js(drupal_get_path('module', 'xml_form_builder') . '/js/test.js');
   extjs_add_js_file('ext-all');
   drupal_add_js(drupal_get_path('module', 'xml_form_builder') . '/js/app.js');
-  drupal_add_js(drupal_get_path('module', 'xml_form_builder') . '/js/FormGrid.js');
+  //  drupal_add_js(drupal_get_path('module', 'xml_form_builder') . '/js/FormGrid.js');
   /*extjs_add_all();
   xml_form_builder_edit_include_css();
-  xml_form_builder_edit_include_js();
+  xml_form_builder_edit_include_js();*/
   xml_form_builder_create_element_type_store();
   xml_form_builder_create_element_store($form_name);
-  xml_form_builder_create_properties_store($form_name); */
-  return '<div id="form-builder"></div>';
+  xml_form_builder_create_properties_store($form_name);
+  return '<div id="form-builder-container"></div>';
   //return '<div id="xml-form-builder-editor"></div>';
 }
 
@@ -94,28 +94,12 @@ function xml_form_builder_edit_save($form_name) {
  */
 function xml_form_builder_create_element_type_store() {
   $types = xml_form_builder_get_element_types();
+  sort($types);
   $data = array();
   foreach ($types as $type) {
     $data[] = array('display' => $type, 'value' => $type);
   }
-  $data = json_encode($data);
-  $js = <<<EOT
-  Ext.formbuilder.elementTypeStore = Ext.data.Store({
-    storeId: 'ElementTypes',
-    fields: ['display', 'value'],
-    proxy: {
-      type: 'memory',
-      reader: {
-        type: 'json'
-      },
-      writer: {
-        type: 'json'
-      }
-    },
-    data: $data
-  });
-EOT;
-  drupal_add_js($js, 'inline');
+  drupal_add_js(array('formbuilder' => array('element_types' => $data)), 'setting');
 }
 
 /**
@@ -132,23 +116,7 @@ function xml_form_builder_create_properties_store($form_name) {
   module_load_include('inc', 'xml_form_api', 'XMLFormDefinition');
   $definition = new XMLFormDefinition(XMLFormDatabase::Get($form_name));
   $data = JSONFormDefinitionGenerator::GetProperties($definition->getProperties());
-  $js = <<<EOT
-  Ext.formbuilder.propertiesStore = Ext.create('Ext.data.Store', {
-    storeId: 'PropertiesStore',
-    model: 'Properties',
-    autoLoad: true,
-    autoSync: true,
-    proxy: {
-      type: 'memory',
-      data: $data,
-      reader: {
-        type: 'json'
-      }
-    }
- });
- Ext.formbuilder.propertiesStore.sync();
-EOT;
-  drupal_add_js($js, 'inline');
+  drupal_add_js(array('formbuilder' => array('properties' => $data)), 'setting');
 }
 
 /**
@@ -165,13 +133,7 @@ function xml_form_builder_create_element_store($form_name) {
   module_load_include('inc', 'xml_form_api', 'XMLFormDefinition');
   $definition = new XMLFormDefinition(XMLFormDatabase::Get($form_name));
   $data = JSONFormDefinitionGenerator::GetForm($definition->getForm());
-  $js = <<<EOT
-  Ext.formbuilder.elementStore = Ext.create('Ext.data.TreeStore', {
-    model: 'Element',
-    root: $data
- });
-EOT;
-  drupal_add_js($js, 'inline');
+  drupal_add_js(array('formbuilder' => array('elements' => $data)), 'setting');
 }
 
 /**
@@ -196,6 +158,7 @@ function xml_form_builder_get_element_types() {
     }
   }
   $types = array_keys($cache);
+  sort($types);
   $output = array();
   foreach ($types as $type) {
     $output[$type] = $type;
