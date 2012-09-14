@@ -2,8 +2,9 @@
  * @file
  *  Defines the Form Builder Ext JS application.
  */
-Ext.ns('FormBuilder');
 Ext.onReady(function() {
+  Ext.scopeResetCSS = true;
+  Ext.ns('FormBuilder');
   // Models
   var types = Ext.data.Types;
   Ext.define('FormBuilder.data.ArrayModel', {
@@ -120,7 +121,7 @@ Ext.onReady(function() {
     }, {
       name: 'text', // The title that appears on the tree view.
       type: 'string',
-      defaultValue: 'new element'
+      defaultValue: 'new element (textfield)'
     }, {
       name: 'type', // The type of form element this is.
       type: 'string',
@@ -384,8 +385,7 @@ Ext.onReady(function() {
       if(this.checkboxCmp.getValue()) {
         var ret = {};
         var prefix_length = (this.name + '_').length;
-        var fields = this.query('> component');
-        fields = Ext.Array.filter(fields, function(field) { return typeof field.setValue != 'undefined'; }, this);
+        var fields = this.query('> field, > fbfieldset, > fbgrid');
         for(var i = 0; i < fields.length; i++) {
           var field = fields[i];
           ret[field.name.substring(prefix_length)] = field.getValue();
@@ -434,10 +434,7 @@ Ext.onReady(function() {
         xtype: 'button',
         text: 'Save & Preview',
         handler: function() {
-          // @todo Save
-          Ext.getCmp('form-builder').save(); // Saves to the server
-          Ext.getCmp('form-builder-main').down('#preview').update("<iframe src='" + window.location.pathname.replace(/\/edit/i, '/view') + "' width='100%' height='100%'><p>Your browser does not support iframes.</p></iframe>");
-          Ext.getCmp('form-builder-main').getLayout().setActiveItem('preview'); // Triggers a save of the open element/properties form.
+          Ext.getCmp('form-builder').save();
         }
       },{
         xtype: 'tbseparator'
@@ -445,12 +442,48 @@ Ext.onReady(function() {
         xtype: 'button',
         text: 'Save',
         handler: function() {
-          // @todo Save and don't show the iFrame
+          Ext.getCmp('form-builder').save();
         }
       }]
     },
     // Saves All Property/Element data to the server.
-    save: function() {
+    save: function(display_preview) {
+      display_preview = display_preview || false;
+      Ext.getCmp('element-form').save();
+      Ext.getCmp('property-form').save();
+      /*
+      var data = {
+        properties: Ext.getStore('Properties').getAt(0),
+        elements: Ext.getStore('Elements').getElements()
+      };
+      /*
+      Ext.getStore('Elements').getRootNode().eachChild(function(child) {
+        child.data.elements = [];
+        var last = this.push(child.data) - 1;
+        child.eachChild(arguments.callee, this[last].elements);
+      }, data.elements);*/
+      Ext.Ajax.request({
+        url: window.location.pathname + '/save',
+        scope: this,
+        params: {
+          data: Ext.encode({
+            properties: Ext.getStore('Properties').getAt(0),
+            elements: Ext.getStore('Elements').getElements()
+          })
+        },
+        success: function(response) {
+          if(display_preview) {
+            this.preview();
+          }
+        }
+      });
+    },
+    preview: function() {
+      var card = Ext.getCmp('form-builder-main');
+      var url = window.location.pathname.replace(/\/edit/i, '/view');
+      var html = "<iframe src='" + url + "' width='100%' height='100%'><p>Your browser does not support iframes.</p></iframe>";
+      card.down('#preview').update();
+      card.getLayout().setActiveItem('preview');
     },
     // Children  of Main Panel
     items: [{ // Element tree
@@ -471,7 +504,16 @@ Ext.onReady(function() {
       store: {
         storeId: 'Elements',
         model: 'FormBuilder.data.ElementModel',
-        root: Drupal.settings.formbuilder.elements
+        root: Drupal.settings.formbuilder.elements,
+        getElements: function() {
+          var out = [];
+          this.getRootNode().eachChild(function(child) {
+            child.data.elements = [];
+            var last = this.push(child.data) - 1;
+            child.eachChild(arguments.callee, this[last].elements);
+          }, out);
+          return out;
+        }
       },
       tbar: {
         xtype: 'toolbar',
@@ -485,7 +527,7 @@ Ext.onReady(function() {
           xtype: 'button',
           text: 'Copy',
           handler: function() {
-            this.up('treepanel').copySelection();             // @todo Do a deep copy of a give node
+            this.up('treepanel').copySelection(); // @todo Do a deep copy of a give node
           }
         }, {
           xtype: 'button',
@@ -541,17 +583,6 @@ Ext.onReady(function() {
           var node = selection.createNode(element);
           this.appendToSelection(node, selection);
         }
-      },
-      listeners: {
-        itemmousedown: function() {
-          // @todo Show Element form
-          //Ext.getCmp('form-builder-main').getLayout().setActiveItem('element-form');
-        },
-        selectionchange: function(view, selections) {
-          //Ext.getCmp('form-builder-main').getLayout().setActiveItem('element-form');
-          // @todo Autosave the form values to the node.
-          // @todo Show the different element form prepopulated with the selection.
-        }
       }
     }, { // This is where the Preview/Element Form/Properties Form is displayed
       id: 'form-builder-main',
@@ -571,19 +602,23 @@ Ext.onReady(function() {
         html: "<iframe src='" + window.location.pathname.replace(/\/edit/i, '/view') + "' width='100%' height='100%'><p>Your browser does not support iframes.</p></iframe>"
       }, {
         title: 'Properties Form',
+        id: 'property-form',
         itemId: 'property-form',
         xtype: 'panel',
         margin: '1 1 1 0',
         frame: true,
         store: Ext.getStore('Properties'),
+        populate: function(record) {
+          this.record = record;
+          Ext.Array.each(this.query('field, fbgrid'), function(field) { field.setValue(this.record.get(field.name)); }, this);
+        },
         save: function() {
-          var record = this.store.getAt(0); // Only one record for properties.
-          record.beginEdit();
-          record.set('localName', this.down('#localName').getValue());
-          record.set('schema', this.down('#schema').getValue());
-          record.set('namespaces', this.down('#namespaces').getValue());
-          record.endEdit(true);
-          record.commit();
+          if(typeof this.record != 'undefined') {
+            this.record.beginEdit();
+            Ext.Array.each(this.query('field, fbgrid'), function(field) { this.record.set(field.name, field.getValue()) }, this);
+            this.record.endEdit(true);
+            this.record.commit();
+          }
         },
         items:  [{
           xtype: 'fieldset',
@@ -646,13 +681,11 @@ Ext.onReady(function() {
             this.save();
           },
           show: function() {
-            var record = this.store.getAt(0); // Only one record for properties.
-            this.down('#localName').setValue(record.get('localName'));
-            this.down('#schema').setValue(record.get('schema'));
-            this.down('#namespaces').setValue(record.get('namespaces'));
+            this.populate(this.store.getAt(0));
           }
         }
       }, {
+        id: 'element-form',
         itemId: 'element-form',
         title: 'Element Form',
         region: 'center',
@@ -2129,42 +2162,31 @@ Ext.onReady(function() {
         }],
         populate: function(record) {
           this.record = record;
-          var data = record.getData();
-          for(name in data) {
-            var field = this.down('component[name="' + name + '"]');
-            if(field && field.setValue) {
-              field.setValue(data[name]);
-            }
-          }
+          Ext.Array.each(this.query('field, fbgrid, fbfieldset'), function(field) { field.setValue(this.record.get(field.name)); }, this);
         },
         save: function() {
           if(typeof this.record != 'undefined' && this.record.parentNode) {
-            var fields = this.query('> component, > component > component > component');
-            fields = Ext.Array.filter(fields, function(field) { return typeof field.setValue != 'undefined'; }, this);
             this.record.beginEdit();
-            for(var i = 0; i < fields.length; i++) {
-              var field = fields[i];
-              if(field && field.getValue) {
-                this.record.set(field.name, field.getValue());
-              }
-            }
-            this.record.beginEdit(true);
+            Ext.Array.each(this.query('field, fbgrid, fbfieldset'), function(field) { this.record.set(field.name, field.getValue()) }, this);
+            this.record.set('text', this.query('textfield[name="key"]')[0].getValue() + ' (' + this.query('textfield[name="type"]')[0].getValue() + ')');
+            this.record.endEdit(true);
             this.record.commit();
           }
         },
         listeners: {
           added: function() {
-            this.addManagedListener(Ext.getCmp('form-builder-tree'), 'selectionchange', function(view, selections) {
-              if(selections.length > 0) {
-                this.save(); // Save before showing new element in form.
-                this.populate(selections[0])
-              }
-              Ext.getCmp('form-builder-main').getLayout().setActiveItem(this);
+            this.addManagedListener(Ext.getCmp('form-builder-tree'), 'deselect', function(view, record) {
+              this.save();
+            }, this);
+            this.addManagedListener(Ext.getCmp('form-builder-tree'), 'select', function(view, record) {
+              this.populate(record);
+            }, this);
+            this.addManagedListener(Ext.getCmp('form-builder-tree'), 'itemclick', function(view, records) {
+              Ext.getCmp('form-builder-main').getLayout().setActiveItem(this); // Show even if it is already selected.
             }, this);
           },
           hide: function() {
-            this.save(); // Save before showing Properties form or the Preview Panel.
-            this.record = undefined; // Unset the locally stored reference to the record
+            this.save(); // Save before showing Properties Form
           }
         }
       }]
