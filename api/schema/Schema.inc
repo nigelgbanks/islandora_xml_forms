@@ -123,7 +123,6 @@ class XMLSchema {
    * @param string $filename
    */
   private function getFullPathToSchema($filename) {
-    $doc = new DOMDocument();
     $filename = trim($filename);
     $scheme = parse_url($filename, PHP_URL_SCHEME);
     if ($scheme == 'http') {
