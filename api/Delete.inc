@@ -53,7 +53,14 @@ class Delete implements Action {
      * @todo add additonal parameters to determine if an element should be deleted, at the moment,
      * the elements are only deleted if they are removed from the form.
      */
-    return FALSE;
+    $accessible = function(FormElement $element) use (&$accessible) {
+      $accesible_ancestors = TRUE;
+      if (isset($element->parent)) {
+        $accesible_ancestors = $accessible($element->parent);
+      }
+      return $element['#access'] && $accesible_ancestors;
+    };
+    return !$accessible($element) && ($document->registry->isRegistered($element->hash) !== FALSE);
   }
 
   /**

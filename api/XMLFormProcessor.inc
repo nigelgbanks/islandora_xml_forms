@@ -122,6 +122,7 @@ class XMLFormProcessor {
     $this->modifyNodes($this->getActions($elements, 'update'));
     $this->modifyNodes($this->getActions($elements, 'delete'));
     $this->modifyNodes($this->getRemovedFormElementsDeleteActions($element));
+    // Get inaccessible form elements delete actions.
     return $this->document;
   }
 

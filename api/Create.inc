@@ -123,7 +123,28 @@ class Create implements Action {
      * @todo add additonal parameters to determine if an element should be created.
      * At the moment we create elements if it did not exist when the form was first rendered.
      */
-    return $document->registry->isRegistered($element->hash) === FALSE;
+    $accessible = function(FormElement $element) use (&$accessible) {
+      $accessible_ancestors = TRUE;
+      if (isset($element->parent)) {
+        $accessible_ancestors = $accessible($element->parent);
+      }
+      return $element['#access'] && $accessible_ancestors;
+    };
+    $count = function(FormElement $element) use(&$count) {
+      return 1 + (isset($element->parent) ? $count($element->parent) : 0);
+    };
+    $stack = debug_backtrace();
+    foreach($stack as &$frame) {
+      unset($frame['args']);
+    }
+    static $bt_print = false;
+    if(!$bt_print) {
+      dsm($stack, 'bt create');
+      $bt_print = true;
+    }
+    $num = $count($element);
+    dsm($accessible($element) ? 't' : 'f', str_repeat('=', $num) . $element['#title']);
+    return $document->registry->isRegistered($element->hash) === FALSE && $accessible($element);
   }
 
   /**

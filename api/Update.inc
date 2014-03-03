@@ -57,7 +57,14 @@ class Update implements Action {
    * @return boolean
    */
   public function shouldExecute(XMLDocument $document, FormElement $element, $value = NULL) {
-    return isset($value);
+    $accessible = function(FormElement $element) use (&$accessible) {
+      $accesible_ancestors = TRUE;
+      if (isset($element->parent)) {
+        $accesible_ancestors = $accessible($element->parent);
+      }
+      return $element['#access'] && $accesible_ancestors;
+    };
+    return isset($value) && $accessible($element);
   }
 
   /**

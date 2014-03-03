@@ -26,8 +26,8 @@ class XMLForm extends Form {
    *
    * @param array $form_state
    */
-  public function __construct(array &$form_state) {
-    parent::__construct(array(), $form_state);
+  public function __construct(array $form, array &$form_state) {
+    parent::__construct($form, $form_state);
     if ($this->storage->initialized) {
       $this->initializeFromStorage();
     }
